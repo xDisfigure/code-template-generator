@@ -1,0 +1,33 @@
+template:
+  - search:
+      for: 'Where do you want your component?'
+      type: 'folder'
+      variable: 'OUTPUT_PATH'
+      root: '#{__dirname}'
+  - ask:
+      for: 'Component name'
+      variable: 'COMPONENT_NAME'
+  - ask:
+      for: 'Stylesheet file name'
+      variable: 'STYLESHEET_NAME'
+      default_value: '#{COMPONENT_NAME}'
+  - create:
+      type: 'folder'
+      outputPath: '#{OUTPUT_PATH}'
+      foldername: '#{COMPONENT_NAME}'
+      recursive: false
+  - create:
+      type: 'file'
+      template: '#{__dirname}/component/barrel.tpl'
+      outputPath: '#{OUTPUT_PATH}/#{COMPONENT_NAME}'
+      filename: 'index.ts'
+  - create:
+      type: 'file'
+      template: '#{__dirname}/component/component.tpl'
+      outputPath: '#{OUTPUT_PATH}/#{COMPONENT_NAME}'
+      filename: '#{COMPONENT_NAME}.tsx'
+  - create:
+      type: 'file'
+      template: '#{__dirname}/component/stylesheet.tpl'
+      outputPath: '#{OUTPUT_PATH}/#{COMPONENT_NAME}'
+      filename: '#{STYLESHEET_NAME}.css'

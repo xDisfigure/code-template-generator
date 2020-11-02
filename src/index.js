@@ -3,6 +3,7 @@ const inquirer = require('inquirer')
 const find = require('find')
 const _ = require('lodash')
 const fs = require('fs')
+const path = require('path')
 
 /**
  * Query could be:
@@ -59,7 +60,7 @@ function interpolate(content, dictionary) {
     variables.forEach((value) => {
         switch (value) {
             case '__dirname':
-                output = output.replace(/(\#\{__dirname\})/g, __dirname)
+                output = output.replace(/(\#\{__dirname\})/g, process.cwd())
                 break
             default:
                 output = output.replace(new RegExp('(\#\{' + value + '\})', 'g'), dictionary.get(value))
@@ -139,27 +140,45 @@ class CreateAction extends BaseAction {
     }
 
     async run() {
-        const {type, outputPath, template, filename} = this.params
-
-        const interpolated = {
-            outputPath: interpolate(outputPath, this.dictionary),
-            template: interpolate(template, this.dictionary),
-            filename: interpolate(filename, this.dictionary)
-        }
+        const {type} = this.params
 
         switch (type) {
-            case 'file':
+            case 'file': {
+                const {outputPath, template, filename} = this.params
+                const interpolated = {
+                    outputPath: interpolate(outputPath, this.dictionary),
+                    template: interpolate(template, this.dictionary),
+                    filename: interpolate(filename, this.dictionary)
+                }
                 const content = template ? getContentFromTemplate(interpolated.template, this.dictionary) : ''
-                const filePath = interpolated.outputPath.concat(interpolated.filename)
+                const filePath =  path.join(interpolated.outputPath, interpolated.filename)
 
-                fs.writeFileSync(filePath, content)
+                try {
+                    fs.writeFileSync(filePath, content)
+                    console.log(`[create][file] ${filePath} created`)
+                } catch(e) {
+                    console.log(`[error][create][file] error while writing ${filePath}`)
+                }
 
-                console.log('[create][file] ' + filePath + ' created')
                 break
+            }
+            case 'folder': {
+                const {outputPath, foldername, recursive = false} = this.params
+                const interpolated = {
+                    outputPath: interpolate(outputPath, this.dictionary),
+                    foldername: interpolate(foldername, this.dictionary),
+                }
 
-            case 'folder':
+                const folderPath = path.join(interpolated.outputPath, interpolated.foldername)
+                try {
+                    fs.mkdirSync(folderPath, {recursive})
+                    console.log(`[create][folder] ${folderPath} created`)
+                } catch (e) {
+                    console.log(`[error][create][folder] Error while creating ${folderPath}`)
+                }
+
                 break
-
+            }
             default:
         }
     }
@@ -179,15 +198,15 @@ async function generate(configPath) {
 
     try {
         config = yaml.safeLoad(fs.readFileSync(configPath, 'utf-8'))
-    } catch(e) {
-        console.log('an error occured while read template yaml file')
+    } catch (e) {
+        console.log('an error occured while read component yaml file')
         return
     }
 
     actions = config.template.map((action) => {
         const key = Object.keys(action)[0]
 
-        switch(key) {
+        switch (key) {
             case 'search':
                 return new SearchAction(dictionary, action[key])
             case 'ask':
@@ -202,4 +221,6 @@ async function generate(configPath) {
     await ActionRunner(actions)
 }
 
-generate(__dirname.concat('/component.tpl.yml'))
+const argv = process.argv.slice(2);
+
+generate(path.join(process.cwd(), argv[0]))
