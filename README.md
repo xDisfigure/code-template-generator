@@ -63,6 +63,7 @@ even simple text works #{MY_VAR}
     outputPath: '#{OUTPUT_PATH}/#{COMPONENT_NAME}'
     filename: 'index.ts'
 ```
+
 ### SearchAction
 
 Action to perform a search on disk and assign the result in a variable.
